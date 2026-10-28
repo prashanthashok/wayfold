@@ -9,6 +9,11 @@ The full plan, phases, and step-by-step build prompts live in
 [`docs/travel-itinerary-app-plan.md`](docs/travel-itinerary-app-plan.md). Read it before starting
 any feature work, and check which phase/prompt the task belongs to.
 
+Domain: `wayfold.online` (e.g. premium email forwarding at `plans+<userid>@wayfold.online`).
+
+**Keep this file current by editing it in place** — add commands, layout, and new rules as the
+project grows. Never replace it wholesale or drop the rules below.
+
 ## Stack
 
 - pnpm monorepo: `/app` (Expo + React Native, TypeScript, expo-router), `/packages/shared`

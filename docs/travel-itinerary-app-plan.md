@@ -20,7 +20,7 @@ This app is an **itinerary aggregator**, not a booking engine. That single disti
 
 1. **Share-to-app (primary, simplest)** — register the app as an OS share target. After booking, the user taps Share on the confirmation (page, PDF, email, or screenshot) and sends it in. No OAuth, no partnerships, no forwarding address; the user initiates every import. Route by type: a shared **URL** → save as the `originalUrl` link (can't be server-fetched; it's behind the user's login); a shared **PDF / text / image** → feed to the parsing ladder. Users often share both, giving you parseable content *and* the deep link. (Expo caveat: needs a custom dev build with a share-intent config plugin — not Expo Go.)
 2. **PDF / document file import** — same parser, for files already saved on the device.
-3. **Email parsing (TripIt-style)** — read-only OAuth into Gmail/Outlook, OR a dedicated forwarding address (`plans@wayfold.app`). More automatic, but needs a server, so it lives in the **premium tier** (see §2).
+3. **Email parsing (TripIt-style)** — read-only OAuth into Gmail/Outlook, OR a dedicated forwarding address (`plans@wayfold.online`). More automatic, but needs a server, so it lives in the **premium tier** (see §2).
 4. **Calendar import** (`.ics`, Apple Calendar on-device; Google Calendar sync is premium).
 5. **Manual entry** (always-available fallback).
 
@@ -216,6 +216,8 @@ On-device database is the source of truth: use expo-sqlite with Drizzle ORM.
 Use pnpm workspaces. Add ESLint + Prettier + a basic CI script.
 Configure an EAS dev build now (we'll need it for the share extension later).
 Create a README explaining how to run the app locally with no server.
+A CLAUDE.md already exists at the repo root: UPDATE it in place (add run/test commands and
+the actual repo layout); do NOT replace it or remove its existing rules.
 Do NOT add features yet — just a clean, runnable app with a placeholder home screen
 and an initialized (empty) local SQLite database.
 ```
@@ -336,7 +338,7 @@ Stand up the premium backend in /server (Fastify + Postgres) and wire it to the 
 Add email-based ingestion, reusing the SAME ParserStrategy ladder server-side.
 
 Behind a feature flag, implement BOTH:
-1. Forwarding address: per-user alias (plans+<userid>@wayfold.app) via an inbound-email
+1. Forwarding address: per-user alias (plans+<userid>@wayfold.online) via an inbound-email
    webhook (Postmark/Mailgun; abstract behind an InboundEmail interface). On receipt, run
    the ladder on the email HTML (JSON-LD rung often hits) + any PDF attachments.
 2. Read-only Gmail OAuth: with explicit consent, periodically scan for travel confirmations
