@@ -1,6 +1,6 @@
-# Travel Itinerary App — Build Plan & Claude Code Prompts
+# Wayfold — Build Plan & Claude Code Prompts
 
-A one-stop mobile app (iOS + Android) to aggregate, view, and share travel itineraries from multiple booking sources. Built **local-first** as a build-once, maintain-lightly side project, with an optional **premium server tier** for the few features that genuinely require a backend.
+**Wayfold** is a one-stop mobile app (iOS + Android) to aggregate, view, and share travel itineraries from multiple booking sources. Built **local-first** as a build-once, maintain-lightly side project, with an optional **premium server tier** for the few features that genuinely require a backend.
 
 ---
 
@@ -20,7 +20,7 @@ This app is an **itinerary aggregator**, not a booking engine. That single disti
 
 1. **Share-to-app (primary, simplest)** — register the app as an OS share target. After booking, the user taps Share on the confirmation (page, PDF, email, or screenshot) and sends it in. No OAuth, no partnerships, no forwarding address; the user initiates every import. Route by type: a shared **URL** → save as the `originalUrl` link (can't be server-fetched; it's behind the user's login); a shared **PDF / text / image** → feed to the parsing ladder. Users often share both, giving you parseable content *and* the deep link. (Expo caveat: needs a custom dev build with a share-intent config plugin — not Expo Go.)
 2. **PDF / document file import** — same parser, for files already saved on the device.
-3. **Email parsing (TripIt-style)** — read-only OAuth into Gmail/Outlook, OR a dedicated forwarding address (`plans@yourapp.com`). More automatic, but needs a server, so it lives in the **premium tier** (see §2).
+3. **Email parsing (TripIt-style)** — read-only OAuth into Gmail/Outlook, OR a dedicated forwarding address (`plans@wayfold.app`). More automatic, but needs a server, so it lives in the **premium tier** (see §2).
 4. **Calendar import** (`.ics`, Apple Calendar on-device; Google Calendar sync is premium).
 5. **Manual entry** (always-available fallback).
 
@@ -204,7 +204,7 @@ LlmUsage           month, count   # enforce the free/premium allowance
 
 ### Prompt 0 — Scaffold (local-first)
 ```
-Set up a TypeScript monorepo for a cross-platform, LOCAL-FIRST travel itinerary app.
+Set up a TypeScript monorepo for a cross-platform, LOCAL-FIRST travel itinerary app called Wayfold.
 The app must run fully standalone with NO backend.
 
 Structure:
@@ -336,7 +336,7 @@ Stand up the premium backend in /server (Fastify + Postgres) and wire it to the 
 Add email-based ingestion, reusing the SAME ParserStrategy ladder server-side.
 
 Behind a feature flag, implement BOTH:
-1. Forwarding address: per-user alias (plans+<userid>@yourapp.com) via an inbound-email
+1. Forwarding address: per-user alias (plans+<userid>@wayfold.app) via an inbound-email
    webhook (Postmark/Mailgun; abstract behind an InboundEmail interface). On receipt, run
    the ladder on the email HTML (JSON-LD rung often hits) + any PDF attachments.
 2. Read-only Gmail OAuth: with explicit consent, periodically scan for travel confirmations
