@@ -20,6 +20,38 @@ project grows. Never replace it wholesale or drop the rules below.
   (zod schemas + shared types), `/server` (premium backend + LLM proxy function).
 - On-device DB: SQLite via `expo-sqlite` + Drizzle ORM.
 - Share target needs an EAS dev build — it does not work in Expo Go.
+- `node-linker=hoisted` (`.npmrc`): one flat `node_modules` at the root, for Metro.
+
+## Layout
+
+- `app/src/app/` — expo-router routes only (every file is a screen; `_layout.tsx` = navigator).
+- `app/src/db/` — `client.ts` opens `wayfold.db` (WAL, foreign keys on); `schema.ts` holds
+  Drizzle tables. Generated migrations go to `app/drizzle/`.
+- `app/` imports use the `@/` alias for `app/src/`.
+- `packages/shared/src/` — zod schemas + types, imported as `@wayfold/shared`.
+- `server/` — placeholder only; not a workspace package yet.
+- `app/AGENTS.md` — Expo-specific agent guidance (versioned docs, CNG rules). Follow it too.
+
+## Commands
+
+Run from the repo root unless noted.
+
+- `pnpm install` — install everything.
+- `pnpm app` — start the Expo dev server.
+- `pnpm check` — lint + format check + typecheck + tests. Run before every commit; CI runs it.
+- `pnpm format` — Prettier write.
+- `pnpm --filter @wayfold/app db:generate` — generate SQL migrations after schema changes.
+- In `app/`: add native/Expo packages with `npx expo install <pkg>` (picks SDK-compatible
+  versions), never plain `pnpm add`. If api.expo.dev is unreachable, prefix `EXPO_OFFLINE=1`.
+
+## Gotchas
+
+- ESLint is pinned to 9: `eslint-plugin-react` (via `eslint-config-expo`) breaks on ESLint 10.
+- `pnpm ci` is a reserved pnpm command — the CI script is `pnpm check`.
+- Never create or edit `app/ios/` or `app/android/` by hand (they're generated and
+  gitignored); configure native behavior via `app.json` and config plugins.
+- Bundle IDs are `online.wayfold.app` (iOS + Android). Changing them after store release is
+  painful.
 
 ## Non-negotiable rules
 
