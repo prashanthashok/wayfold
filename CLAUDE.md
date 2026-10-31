@@ -25,10 +25,16 @@ project grows. Never replace it wholesale or drop the rules below.
 ## Layout
 
 - `app/src/app/` — expo-router routes only (every file is a screen; `_layout.tsx` = navigator).
-- `app/src/db/` — `client.ts` opens `wayfold.db` (WAL, foreign keys on); `schema.ts` holds
-  Drizzle tables. Generated migrations go to `app/drizzle/`.
+- `app/src/db/` — `client.ts` opens `wayfold.db` (WAL, foreign keys on); `schema.ts` holds the
+  Drizzle tables (trips, locations, attachments, bookings, segments) with CHECK constraints;
+  `schema-matches-shared.ts` is a compile-time guard that each table infers the same type as
+  its zod mirror; `seed-data.ts` + `seed.ts` are the dev-only sample trip; `test-db.ts` is the
+  test harness. Generated migrations go to `app/drizzle/`.
+- `app/src/app/_layout.tsx` runs migrations (`useMigrations`) then, in `__DEV__` only, the sample
+  seed. It shows a "Database error" screen instead of crashing if either fails.
 - `app/` imports use the `@/` alias for `app/src/`.
-- `packages/shared/src/` — zod schemas + types, imported as `@wayfold/shared`.
+- `packages/shared/src/` — `enums.ts` (enum values, reused by Drizzle) and `schemas.ts` (zod
+  entity schemas + primitives), imported as `@wayfold/shared`.
 - `server/` — placeholder only; not a workspace package yet.
 - `app/AGENTS.md` — Expo-specific agent guidance (versioned docs, CNG rules). Follow it too.
 
@@ -40,11 +46,38 @@ Run from the repo root unless noted.
 - `pnpm app` — start the Expo dev server.
 - `pnpm check` — lint + format check + typecheck + tests. Run before every commit; CI runs it.
 - `pnpm format` — Prettier write.
-- `pnpm --filter @wayfold/app db:generate` — generate SQL migrations after schema changes.
+- `pnpm --filter @wayfold/app db:generate --name <what-changed>` — generate a SQL migration
+  after editing `schema.ts` (commit the whole `app/drizzle/` folder). Never edit or delete a
+  migration that has shipped; add a new one.
 - In `app/`: add native/Expo packages with `npx expo install <pkg>` (picks SDK-compatible
   versions), never plain `pnpm add`. If api.expo.dev is unreachable, prefix `EXPO_OFFLINE=1`.
 
+## Data conventions
+
+- Instants are UTC ISO-8601 text with a `Z` and **whole seconds** (`2027-03-12T16:00:00Z`);
+  `updated_at`/`deleted_at` use milliseconds (`Date.toISOString()`). Fixed width means string
+  comparison and `ORDER BY` are chronological. The DB CHECKs reject naive local times.
+- `trips.start_date`/`end_date` are calendar dates (`YYYY-MM-DD`), not instants.
+- Enum values live in `packages/shared/src/enums.ts`; Drizzle columns and CHECKs import them.
+- Money is minor units per currency: USD cents, but JPY has no minor unit (¥84,000 = `84000`).
+  Look up the exponent per currency before formatting; never assume 100.
+- Seed rows use fixed `5eed…` UUIDs and `ON CONFLICT DO NOTHING`, so they are idempotent and a
+  soft-deleted sample row stays deleted.
+- There is no runtime UUID source in the app yet. `crypto.randomUUID` isn't guaranteed on
+  Hermes and `expo-crypto` is a native module (needs a new dev build) — decide in Prompt 2.
+
+## Testing
+
+- DB tests run the real generated migrations against Node's built-in `node:sqlite` through
+  Drizzle's sqlite-proxy (`app/src/db/test-db.ts`), so CHECK/FK behavior is tested without a
+  simulator. Add constraint tests there when adding constraints.
+- Adding or changing a table: update `schema.ts`, the zod mirror in `packages/shared`, then run
+  `db:generate`. `pnpm typecheck` fails if the two drift.
+
 ## Gotchas
+
+- TypeScript 6 no longer auto-loads `@types/*`. Node types are opted in only where needed, via
+  `/// <reference types="node" />` in `test-db.ts`; don't add them to the app's tsconfig.
 
 - ESLint is pinned to 9: `eslint-plugin-react` (via `eslint-config-expo`) breaks on ESLint 10.
 - `pnpm ci` is a reserved pnpm command — the CI script is `pnpm check`.
