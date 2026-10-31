@@ -54,8 +54,15 @@ pnpm format         # auto-format
 
 ## Database
 
-Drizzle schema lives in `app/src/db/schema.ts`. After changing it:
+Drizzle schema lives in `app/src/db/schema.ts` (zod mirrors in `packages/shared`). After changing it:
 
 ```bash
-pnpm --filter @wayfold/app db:generate     # writes SQL migrations to app/drizzle/
+pnpm --filter @wayfold/app db:generate --name <what-changed>   # writes SQL to app/drizzle/
 ```
+
+Migrations are applied automatically when the app launches. In development builds the app also
+inserts a sample Tokyo trip (one flight, one hotel, one activity across two timezones and two
+currencies); release builds start empty. To reset on a simulator, delete the app and reinstall.
+
+Database tests (`pnpm test`) run the real migrations against an in-memory SQLite, no simulator
+needed.
