@@ -4,7 +4,7 @@ import { openDatabaseSync } from 'expo-sqlite';
 import * as schema from './schema';
 
 // The on-device SQLite database is Wayfold's source of truth.
-const sqlite = openDatabaseSync('wayfold.db');
+export const sqlite = openDatabaseSync('wayfold.db');
 sqlite.execSync('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
 
 export const db = drizzle(sqlite, { schema });

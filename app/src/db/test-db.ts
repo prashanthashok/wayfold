@@ -9,6 +9,8 @@ import { join } from 'node:path';
 import { drizzle } from 'drizzle-orm/sqlite-proxy';
 
 import * as schema from './schema';
+import { withTransaction } from './transaction';
+import type { RepoCtx } from './types';
 
 const MIGRATIONS_DIR = join(__dirname, '../../drizzle');
 
@@ -45,4 +47,25 @@ export function createTestDb() {
   );
 
   return { db, sqlite };
+}
+
+export interface TestCtxOptions {
+  /** Override id generation, e.g. to throw partway through a write. */
+  newId?: () => string;
+}
+
+/** A RepoCtx over a fresh in-memory database, with deterministic ids and a ticking clock. */
+export function createTestCtx(options: TestCtxOptions = {}) {
+  const { db, sqlite } = createTestDb();
+  let idCounter = 0;
+  let clock = 0;
+  const ctx: RepoCtx = {
+    db,
+    newId:
+      options.newId ?? (() => `7e570000-0000-4000-8000-${String(++idCounter).padStart(12, '0')}`),
+    // Each call is one second later, so "updatedAt moved forward" is observable.
+    now: () => new Date(Date.UTC(2027, 0, 1, 0, 0, clock++)).toISOString(),
+    transaction: (fn) => withTransaction((sql) => sqlite.exec(sql), fn),
+  };
+  return { ctx, db, sqlite };
 }

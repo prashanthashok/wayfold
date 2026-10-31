@@ -66,6 +66,10 @@ describe('tripSchema', () => {
     const { deletedAt: _d, ...withoutDeletedAt } = trip;
     expect(tripSchema.safeParse(withoutDeletedAt).success).toBe(false);
   });
+  it('rejects a trip that ends before it starts', () =>
+    expect(tripSchema.safeParse({ ...trip, endDate: '2027-03-11' }).success).toBe(false));
+  it('allows a one-day trip', () =>
+    expect(tripSchema.safeParse({ ...trip, endDate: trip.startDate }).success).toBe(true));
   it('rejects a date with a time component', () =>
     expect(tripSchema.safeParse({ ...trip, startDate: '2027-03-12T00:00:00Z' }).success).toBe(
       false,

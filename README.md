@@ -45,6 +45,17 @@ client. With Xcode / Android Studio installed you can build locally instead:
 
 The local SQLite database (`wayfold.db`) is created on first launch; the home screen confirms it.
 
+## Using the app
+
+- **Trips** screen: create a trip (name, dates, home timezone).
+- **Trip** screen: totals per currency, then the day-by-day itinerary. "Add booking" opens a form
+  that changes with the type (Transport / Stay / Activity). Times are entered as local time in the
+  place they happen and shown the same way, with the timezone label (EST, GMT+9, …).
+- Tap a booking to edit or delete it. "Open booking ↗" opens the original link in the browser.
+
+Adding or removing a native module (like `expo-crypto`) needs a fresh development build:
+`npx eas-cli@latest build --profile development-simulator --platform ios`, then reinstall.
+
 ## Checks
 
 ```bash

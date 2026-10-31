@@ -30,11 +30,24 @@ project grows. Never replace it wholesale or drop the rules below.
   `schema-matches-shared.ts` is a compile-time guard that each table infers the same type as
   its zod mirror; `seed-data.ts` + `seed.ts` are the dev-only sample trip; `test-db.ts` is the
   test harness. Generated migrations go to `app/drizzle/`.
+- `app/src/db/repo.ts` — every trip/booking read and write (`listTrips`, `getTripDetail`,
+  `createBooking`, `updateBooking`, `deleteTrip`, …). It takes a `RepoCtx` (db, `newId`, `now`,
+  `transaction`) so tests control ids/time; the real one is `appCtx` in `db/context.ts`. It
+  validates with the shared zod schemas before writing and never imports React Native/Expo.
+- `app/src/features/` — pure form logic (`booking-form.ts`, `trip-form.ts`): typed text ↔
+  validated input, per-type field layout, DST warnings. No React, so it is unit-tested.
+- `app/src/components/` — UI building blocks (`ui.tsx` primitives, `BookingFormFields`,
+  `BookingScreen`, `TripForm`, `TripTimeline`, `TotalsCard`, `TimezoneField`).
+- `app/src/lib/` — `ids.ts` (`newId`), `timezones.ts`, `links.ts`, `preferences.ts`,
+  `useFocusLoad.ts` (reload a screen's data on focus).
+- Routes: `/` trips list, `/trip/new`, `/trip/[id]` detail, `/trip/[id]/edit`,
+  `/trip/[id]/booking/new`, `/trip/[id]/booking/[bookingId]`.
 - `app/src/app/_layout.tsx` runs migrations (`useMigrations`) then, in `__DEV__` only, the sample
   seed. It shows a "Database error" screen instead of crashing if either fails.
 - `app/` imports use the `@/` alias for `app/src/`.
-- `packages/shared/src/` — `enums.ts` (enum values, reused by Drizzle) and `schemas.ts` (zod
-  entity schemas + primitives), imported as `@wayfold/shared`.
+- `packages/shared/src/` — `enums.ts` (enum values, reused by Drizzle), `schemas.ts` (zod
+  entity schemas + primitives), `time.ts` (UTC ↔ zoned time, DST, labels), `money.ts` (minor
+  units, totals), `timeline.ts` (day-by-day grouping), imported as `@wayfold/shared`.
 - `server/` — placeholder only; not a workspace package yet.
 - `app/AGENTS.md` — Expo-specific agent guidance (versioned docs, CNG rules). Follow it too.
 
@@ -63,14 +76,31 @@ Run from the repo root unless noted.
   Look up the exponent per currency before formatting; never assume 100.
 - Seed rows use fixed `5eed…` UUIDs and `ON CONFLICT DO NOTHING`, so they are idempotent and a
   soft-deleted sample row stays deleted.
-- There is no runtime UUID source in the app yet. `crypto.randomUUID` isn't guaranteed on
-  Hermes and `expo-crypto` is a native module (needs a new dev build) — decide in Prompt 2.
+- Row ids come from `newId()` (`app/src/lib/ids.ts`, `expo-crypto` `randomUUID`, v4). It is a
+  native module: adding or removing any native module needs a new EAS dev build, JS-only
+  changes do not.
+- Local times → UTC goes through `zonedTimeToUtc` (shared). A time in a DST gap (never happens)
+  moves forward by the gap; an ambiguous time (happens twice) takes the first. The booking
+  form warns before saving either. Compare instants, never wall-clock strings, across zones.
+- Timeline events sit on the calendar day of their own timezone. A stay is two events
+  (check-in, check-out); transport/activity is one with an optional end.
+- Trip totals are per currency, exclude CANCELLED and soft-deleted bookings, include PENDING.
+  The per-trip "show first" currency only reorders; it never converts. It is a device
+  preference (`expo-sqlite/kv-store`), not itinerary data, so it does not sync.
+- Date/time fields are plain text (`YYYY-MM-DD`, 24-hour `HH:mm`), not native pickers: pickers
+  report the device's zone, which is wrong for a time in another zone.
+- Only `http(s)` links are accepted (`isWebUrl`) and opened. Don't rely on `z.url()` or
+  `new URL()` for this in the app: React Native's URL support is partial.
 
 ## Testing
 
 - DB tests run the real generated migrations against Node's built-in `node:sqlite` through
   Drizzle's sqlite-proxy (`app/src/db/test-db.ts`), so CHECK/FK behavior is tested without a
   simulator. Add constraint tests there when adding constraints.
+- Booking/trip form rules live in `app/src/features/*.test.ts`; repository behavior
+  (create/edit/delete, atomic rollback, location sharing) in `app/src/db/repo.test.ts` via
+  `createTestCtx()`. UI components have no automated tests yet; they are checked by bundling
+  (`expo export`) and by hand in the simulator.
 - Adding or changing a table: update `schema.ts`, the zod mirror in `packages/shared`, then run
   `db:generate`. `pnpm typecheck` fails if the two drift.
 

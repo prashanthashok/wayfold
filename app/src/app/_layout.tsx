@@ -6,6 +6,7 @@ import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator';
 
 import { db } from '@/db/client';
 import { seedSampleTrip } from '@/db/seed';
+import { colors } from '@/theme';
 import migrations from '../../drizzle/migrations';
 
 export default function RootLayout() {
@@ -42,7 +43,12 @@ export default function RootLayout() {
 
   return (
     <>
-      <Stack screenOptions={{ title: 'Wayfold' }} />
+      <Stack
+        screenOptions={{
+          headerBackButtonDisplayMode: 'minimal',
+          contentStyle: { backgroundColor: colors.background },
+        }}
+      />
       <StatusBar style="auto" />
     </>
   );
@@ -50,6 +56,6 @@ export default function RootLayout() {
 
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 8 },
-  errorTitle: { fontSize: 18, fontWeight: '600', color: '#b00020' },
+  errorTitle: { fontSize: 18, fontWeight: '600', color: colors.danger },
   errorBody: { fontSize: 13, color: '#444' },
 });

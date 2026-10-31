@@ -1,48 +1,80 @@
-import { count, isNull } from 'drizzle-orm';
-import { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Stack, router } from 'expo-router';
+import { formatCalendarDate } from '@wayfold/shared';
+import { useCallback } from 'react';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { db, sqliteVersion } from '@/db/client';
-import { bookings, segments, trips } from '@/db/schema';
+import { Button, Card, Notice } from '@/components/ui';
+import { appCtx } from '@/db/context';
+import { sqliteVersion } from '@/db/client';
+import { listTrips } from '@/db/repo';
+import { useFocusLoad } from '@/lib/useFocusLoad';
+import { colors, spacing } from '@/theme';
 
-interface Counts {
-  trips: number;
-  bookings: number;
-  segments: number;
-}
-
-// Live (not soft-deleted) rows only.
-async function loadCounts(): Promise<Counts> {
-  const [t] = await db.select({ n: count() }).from(trips).where(isNull(trips.deletedAt));
-  const [b] = await db.select({ n: count() }).from(bookings).where(isNull(bookings.deletedAt));
-  const [s] = await db.select({ n: count() }).from(segments).where(isNull(segments.deletedAt));
-  return { trips: t?.n ?? 0, bookings: b?.n ?? 0, segments: s?.n ?? 0 };
-}
-
-export default function HomeScreen() {
-  const [counts, setCounts] = useState<Counts | null>(null);
-
-  useEffect(() => {
-    loadCounts().then(setCounts);
-  }, []);
+export default function TripsScreen() {
+  const load = useCallback(() => listTrips(appCtx), []);
+  const { data: trips, error, loading } = useFocusLoad(load);
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Wayfold</Text>
-      <Text style={styles.subtitle}>Your trips will appear here.</Text>
-      <Text style={styles.meta}>Local database ready · SQLite {sqliteVersion()}</Text>
-      {counts && (
-        <Text style={styles.meta}>
-          {counts.trips} trips · {counts.bookings} bookings · {counts.segments} segments
-        </Text>
+      <Stack.Screen
+        options={{
+          title: 'Trips',
+          headerRight: () => (
+            <Button title="New trip" variant="link" onPress={() => router.push('/trip/new')} />
+          ),
+        }}
+      />
+      {error && <Notice tone="error">{error.message}</Notice>}
+      {loading && !trips ? (
+        <ActivityIndicator style={styles.loading} />
+      ) : (
+        <FlatList
+          data={trips ?? []}
+          keyExtractor={(trip) => trip.id}
+          contentContainerStyle={styles.list}
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <Text style={styles.emptyTitle}>No trips yet</Text>
+              <Text style={styles.emptyBody}>
+                Create a trip, then add flights, stays and activities to it.
+              </Text>
+              <Button title="Create your first trip" onPress={() => router.push('/trip/new')} />
+            </View>
+          }
+          renderItem={({ item }) => (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={item.title}
+              onPress={() => router.push(`/trip/${item.id}`)}
+            >
+              <Card>
+                <Text style={styles.tripTitle}>{item.title}</Text>
+                <Text style={styles.tripDates}>
+                  {formatCalendarDate(item.startDate, undefined, { year: true })} –{' '}
+                  {formatCalendarDate(item.endDate, undefined, { year: true })}
+                </Text>
+              </Card>
+            </Pressable>
+          )}
+          ListFooterComponent={
+            __DEV__ ? (
+              <Text style={styles.devFooter}>Local database ready · SQLite {sqliteVersion()}</Text>
+            ) : undefined
+          }
+        />
       )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 8 },
-  title: { fontSize: 28, fontWeight: '600' },
-  subtitle: { fontSize: 16, color: '#555' },
-  meta: { fontSize: 12, color: '#888' },
+  container: { flex: 1, backgroundColor: colors.background },
+  list: { padding: spacing.lg, gap: spacing.md },
+  loading: { marginTop: spacing.xl },
+  empty: { alignItems: 'center', gap: spacing.md, paddingTop: spacing.xl * 2 },
+  emptyTitle: { fontSize: 20, fontWeight: '600', color: colors.text },
+  emptyBody: { fontSize: 15, color: colors.muted, textAlign: 'center' },
+  tripTitle: { fontSize: 18, fontWeight: '600', color: colors.text },
+  tripDates: { fontSize: 14, color: colors.muted },
+  devFooter: { fontSize: 12, color: colors.faint, textAlign: 'center', marginTop: spacing.lg },
 });

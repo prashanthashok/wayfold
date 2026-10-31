@@ -1,9 +1,6 @@
-import type { BaseSQLiteDatabase } from 'drizzle-orm/sqlite-core';
-
 import { buildSeedData } from './seed-data';
 import * as schema from './schema';
-
-export type Db = BaseSQLiteDatabase<'sync' | 'async', any, typeof schema>;
+import type { Db } from './types';
 
 /**
  * Inserts the sample trip. Idempotent (`ON CONFLICT DO NOTHING` per row): safe to run on every

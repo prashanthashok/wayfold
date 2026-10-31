@@ -61,14 +61,19 @@ const rowBase = {
 // Entities (these mirror the Drizzle tables in app/src/db/schema.ts)
 // ---------------------------------------------------------------------------------------------
 
-export const tripSchema = z.object({
-  ...rowBase,
-  title: z.string().min(1),
-  startDate: calendarDateSchema,
-  endDate: calendarDateSchema,
-  coverImage: z.string().nullable(),
-  homeTimezone: ianaTimezoneSchema,
-});
+export const tripSchema = z
+  .object({
+    ...rowBase,
+    title: z.string().min(1),
+    startDate: calendarDateSchema,
+    endDate: calendarDateSchema,
+    coverImage: z.string().nullable(),
+    homeTimezone: ianaTimezoneSchema,
+  })
+  .refine((t) => t.startDate <= t.endDate, {
+    message: 'endDate must not be before startDate',
+    path: ['endDate'],
+  });
 export type Trip = z.infer<typeof tripSchema>;
 
 export const locationSchema = z.object({
